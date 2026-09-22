@@ -1,0 +1,1 @@
+# pySC2pyaml
