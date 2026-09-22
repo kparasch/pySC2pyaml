@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
-path = "pySC2pyaml/__init__.py"
+path = "pySC2pyaml/version.py"
 
 [project]
 name = "pySC2pyaml"
@@ -16,9 +16,6 @@ keywords = ["Accelerator", "Synchrotron", "Operation", "Tuning", "Digital Twin",
 maintainers = [
     {name = "Konstantinos Paraschou", email = "konstantinos.paraschou@desy.de"}
 ]
-
-[project.scripts]
-pysc_to_pyaml = "pySC2pyaml.scripts.generate_pyaml_config:main"
 
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -38,6 +35,9 @@ dependencies = [
     "accelerator-middle-layer",
     "accelerator-commissioning",
 ]
+
+[project.scripts]
+pysc-to-pyaml = "pySC2pyaml.scripts.generate_pyaml_config:main"
 
 [project.optional-dependencies]
 dev = [
