@@ -19,14 +19,12 @@ class pySCControlSystem(ControlSystem, DynamicValidation):
         port: int,
         ip_address: str = "127.0.0.1",
         catalog: ACatalog | None = None,
-        #timeout_ms: int = 3000,
     ):
         super().__init__()
         self._name = name
         self._ip_address = ip_address
         self._port = port
         self._catalog = catalog
-        #self._timeout_ms = timeout_ms
         self.__devices = {}  # Dict containing all attached DeviceAccess
 
         logger.warning(
