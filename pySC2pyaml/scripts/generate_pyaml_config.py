@@ -1,3 +1,4 @@
+"""Generate a PyAML accelerator YAML configuration from a pySC configuration."""
 import argparse
 import sys
 from typing import Sequence, Optional
@@ -9,6 +10,46 @@ import os
 from scipy.constants import c
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    """Generate and write a PyAML configuration from command-line arguments.
+
+    Load the pySC configuration and create control system, BPM, RF, magnet,
+    array, and tuning tool entries. Magnet calibration factors are derived
+    from the design energy and, for nonintegrated strengths, magnet lengths.
+
+    Parameters
+    ----------
+    argv : sequence of str or None, optional
+        Arguments excluding the executable name. If ``None``, use
+        ``sys.argv[1:]``. Required arguments are the input pySC configuration
+        and output YAML path. Optional flags are ``--ip_address``, ``--port``,
+        and ``--facility_name``.
+
+    Returns
+    -------
+    int
+        Zero after successfully writing the output file.
+
+    Raises
+    ------
+    NotImplementedError
+        If a control array contains multiple magnet strength components.
+    SystemExit
+        If argument parsing fails or help is requested.
+
+    Notes
+    -----
+    The output file is overwritten if it exists. Loading runs with the input
+    configuration's directory as the working directory. The original working
+    directory is restored after loading and extracting the design energy;
+    an exception during those steps can leave it changed.
+
+    Examplee
+    --------
+    Given an existing ``pysc_config.yaml``, generate a configuration from
+    the command line using the default server endpoint::
+
+        pysc-to-pyaml pysc_config.yaml pyaml_config.yaml
+    """
     argparser = argparse.ArgumentParser()
     argparser.add_argument('pysc_config', type=str, help='Path for the pySC configuration file to load')
     argparser.add_argument('output_path', type=str, help='Output path for pyaml configuration file')

@@ -1,9 +1,4 @@
-"""
-pySC2pyaml package
-~~~~~~~~~~~~~
-
-pySC2pyaml
-"""
+"""Bindings between the pySC control system and the PyAML accelerator middle layer."""
 from .version import __version__
 __title__ = "pySC2pyaml"
 __description__ = "Bindings between pySC (control system) and PyAML"

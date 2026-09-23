@@ -1,3 +1,4 @@
+"""Bind PyAML device references to a pySC server endpoint."""
 import logging
 
 from pyaml import PyAMLException
@@ -13,6 +14,20 @@ logger = logging.getLogger(__name__)
 
 @register_schema
 class pySCControlSystem(ControlSystem, DynamicValidation):
+    """Attach catalog devices to a configured pySC server.
+
+    Parameters
+    ----------
+    name : str
+        Name identifying this control system in PyAML.
+    port : int
+        Port of the pySC server.
+    ip_address : str, optional
+        Server address. Defaults to ``"127.0.0.1"``.
+    catalog : ACatalog or None, optional
+        Catalog used to resolve string references. Its ``resolve`` method must
+        accept the key and this control system as positional arguments.
+    """
     def __init__(
         self,
         name: str,
@@ -20,6 +35,7 @@ class pySCControlSystem(ControlSystem, DynamicValidation):
         ip_address: str = "127.0.0.1",
         catalog: ACatalog | None = None,
     ):
+        """Store the server configuration and initialize the attached device cache."""
         super().__init__()
         self._name = name
         self._ip_address = ip_address
@@ -33,13 +49,40 @@ class pySCControlSystem(ControlSystem, DynamicValidation):
         )
 
     def attach_array(self, devs: list[DeviceAccess]) -> list[DeviceAccess]:
+        """Attach a sequence of devices to this server.
+
+        Parameters
+        ----------
+        devs : list of pySCDeviceAccess or None
+            Devices with addresses relative to the server endpoint.
+
+        Returns
+        -------
+        list of pySCDeviceAccess or None
+            Attached devices in input order, preserving ``None`` entries.
+            Devices with the same full address and index share a cached instance.
+        """
         return self._attach(devs)
 
     def attach(self, devs: list[DeviceAccess]) -> list[DeviceAccess]:
+        """Attach devices using the configured server address and port.
+
+        Parameters
+        ----------
+        devs : list of pySCDeviceAccess or None
+            Devices with addresses relative to the server endpoint.
+
+        Returns
+        -------
+        list of pySCDeviceAccess or None
+            Cached clones with the endpoint prepended to their addresses.
+            Input order and ``None`` entries are preserved.
+        """
         return self._attach(devs)
 
     def _attach(self, devs: list[DeviceAccess]) -> list[DeviceAccess]:
         # Concatenate the pySC prefix ("ip_address:port/")
+        """Prefix device addresses with the endpoint and cache clones by address and index."""
         newDevs = []
         for d in devs:
             if d is not None:
@@ -58,30 +101,28 @@ class pySCControlSystem(ControlSystem, DynamicValidation):
         return newDevs
 
     def get_device_access(self, ref: str | None) -> DeviceAccess | None:
-        """
-        Resolve a public device reference for this pySC control system.
-
-        YAML references are opaque strings resolved by the configured backend
-        catalog. Public Python APIs may pass Tango backend configuration models.
-        Already constructed DeviceAccess instances are intentionally rejected:
-        attach() remains the internal compatibility API for those.
+        """Resolve a catalog reference and attach the device to this server.
 
         Parameters
         ----------
         ref : str or None
-            Catalog key or ``None``.
+            Key understood by the configured catalog, or ``None``.
 
         Returns
         -------
         DeviceAccess or None
-            Attached device access, or ``None`` if ``ref`` is ``None``.
+            Attached device access, or ``None`` when no reference is supplied.
 
         Raises
         ------
         pyaml.PyAMLException
-            If ``ref`` is an already constructed DeviceAccess, if no usable
-            catalog is configured for a string key, or if ``ref`` has an
-            unsupported type.
+            If the reference is neither a string nor ``None``, the catalog is
+            missing or unsupported, or catalog resolution rejects the key.
+
+        Notes
+        -----
+        Use ``attach`` for existing device access objects. The catalog receives
+        this control system as the second argument to its ``resolve`` method.
         """
         if ref is None:
             return None
@@ -120,62 +161,34 @@ class pySCControlSystem(ControlSystem, DynamicValidation):
         )
 
     def name(self) -> str:
-        """
-        Return the name of the control system.
-
-        Returns
-        -------
-        str
-            Name of the control system.
-        """
+        """Return the configured control system name."""
         return self._name
 
     def get_aggregator(self) -> None:
-        """
-        Return a new empty aggregator of device accesses.
+        """Return ``None`` to use PyAML's sequential device reads and writes.
 
-        If ``None`` were returned, serialized readings/writings would be
-        performed by the pyAML core instead.
-
-        Returns
-        -------
-        MultiAttribute
-            New empty :class:`~tango.pyaml.multi_attribute.MultiAttribute`.
+        This backend does not provide a device access aggregator.
         """
         return None
 
     def scalar_aggregator(self) -> str | None:
-        """
-        Return the module name used for handling aggregator of DeviceAccess.
-
-        Returns
-        -------
-        str or None
-            Aggregator module name. Always ``None`` for Tango.
-        """
+        """Return ``None`` because this backend provides no scalar aggregator module."""
         return None
 
     def vector_aggregator(self) -> str | None:
-        """
-        Return the module name used for handling aggregator of DeviceVectorAccess.
-
-        Returns
-        -------
-        str or None
-            Aggregator module name. Always ``None`` for Tango.
-        """
+        """Return ``None`` because this backend provides no vector aggregator module."""
         return None
 
     def get_catalog(self) -> ACatalog | None:
-        """
-        Return the catalog that references all control system devices.
+        """Return the configured catalog, if any.
 
         Returns
         -------
-        Catalog or None
-            The catalog, or ``None`` if none was configured.
+        ACatalog or None
+            Catalog supplied at construction, or ``None`` if none was configured.
         """
         return self._catalog
 
     def __repr__(self):
+        """Return the PyAML representation of this control system."""
         return __pyaml_repr__(self)
