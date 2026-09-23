@@ -3,6 +3,10 @@ import sys
 from typing import Sequence, Optional
 import yaml
 from pySC import generate_SC
+import pathlib
+import tempfile
+import os
+from scipy.constants import c
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     argparser = argparse.ArgumentParser()
@@ -13,8 +17,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     argparser.add_argument('--facility_name', type=str, default="pySC")
     args = argparser.parse_args(argv)
 
+    absolute_config_path = pathlib.Path(args.pysc_config).resolve()
+    initial_dir = pathlib.Path.cwd()
+    config_dir = absolute_config_path.parent.resolve()
+    os.chdir(config_dir)
 
-    SC = generate_SC(args.pysc_config)
+    SC = generate_SC(absolute_config_path)
+
+    energy = float(SC.lattice.design.energy)
+    brho = energy/c
+    os.chdir(initial_dir)
+
     facility_name = args.facility_name
     ip_address = args.ip_address
     port = args.port
@@ -110,7 +123,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                                "model": magnet_model.copy()
                               }
                 if component.endswith("L"):
-                    magnet_conf["model"]["calibration_factor"] = SC.design_magnet_settings.magnets[magnet].length
+                    magnet_conf["model"]["calibration_factor"] = brho
+                else:
+                    #untested
+                    magnet_conf["model"]["calibration_factor"] = brho * SC.design_magnet_settings.magnets[magnet].length
                 magnet_conf["model"]["powerconverter"] = f"MAGNET/{magnet}/{component}"
                 magnet_devices.append(magnet_conf)
                 array_names.append(magnet)
@@ -134,7 +150,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     config = {"class": "pyaml.accelerator.Accelerator",
               "machine": "sr",
               "facility": facility_name,
-              "energy": float(SC.lattice.design.energy),
+              "energy": energy,
               #"alphac": float(mcf),
               "controls": controls_config,
               "arrays": arrays_config,
